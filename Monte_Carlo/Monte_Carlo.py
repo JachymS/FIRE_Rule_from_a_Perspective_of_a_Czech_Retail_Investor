@@ -76,7 +76,7 @@ def mcs(runs, withdrawal_rate, cz, eu, us):
             # Update iwv
             withdrawal_value*=(1+infl)
             yearly_with_values.append(np.round(withdrawal_value,2))
-            # Generate returns - CHECK THAT VARIABLE ORDERING IS CORRECT!!!!!!!!!!!!!!!!!!!!!!!!
+            # Generate returns 
             eur, usd, pxtr, sx5gt, spxtr, czb, eub, usb = simulation(means=var_means, L=cholesky)
             # Update on portfolio shares
             assets=np.sum([cz_stock,eu_stock,us_stock,cz_bond,eu_bond,us_bond])

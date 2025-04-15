@@ -2,7 +2,7 @@
 VENV_DIR/
 
 # Development notebook
-development.ipynb
+development/
 
 # pycache
 Monte_Carlo/__pycache__

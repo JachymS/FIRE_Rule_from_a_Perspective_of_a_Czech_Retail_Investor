@@ -10,14 +10,17 @@ def load_statistics():
     """ Loads json file. """
     with open("/Users/jachymsvejda/Documents/GitHub/FIRE_Rule_from_a_Perspective_of_a_Czech_Retail_Investor/data/relationships/statistics.json") as f:
         return json.load(f)
-def inflation(dictionary):
+def inflation(dictionary,housing=False):
     """ Generates inflation lower than 50% from specified lognormal distribution. """
-    mu = dictionary["Infl_log_mean"]
-    sigma = dictionary["Infl_log_std"]
+    mu = dictionary["Infl_log_total_mean"]
+    sigma = dictionary["Infl_log_total_std"]
     # Calculate upper bound (50%) in standard normal units:
     b = (np.log(0.5) - mu) / sigma
     # Return Inflation
-    return np.exp(st.truncnorm.rvs(a=-np.inf, b=b, loc=mu, scale=sigma))
+    out=np.exp(st.truncnorm.rvs(a=-np.inf, b=b, loc=mu, scale=sigma))
+    if housing:
+        return  out - 0.001158 # underestimate inflation by housing
+    return out
 def cholesky_decomp(cz_market, eu_market, us_market):
     """ Loads Cholesky decomposition matrix for relevant markets. """
     if cz_market==1:
@@ -34,7 +37,7 @@ def asset_split(value, share):
     return (value * share)/2, (value * share)/2
 
 # Actual MCS Simulation
-def mcs(runs, withdrawal_rate, cz, eu, us, debugging=False):
+def mcs(runs, withdrawal_rate, cz, eu, us, house=False, debugging=False):
     """Monte Carlo Simulation.
         
         Arguments
@@ -49,6 +52,8 @@ def mcs(runs, withdrawal_rate, cz, eu, us, debugging=False):
             share of portfolio allocated in the EU market
         us :
             share of portfolio allocated in the US market
+        house: boolean (default: False)
+            specifices whether inflation should be underestimated 
         debugging : boolean (default: False)
             returns additional info if True
         ----------------------
@@ -86,6 +91,7 @@ def mcs(runs, withdrawal_rate, cz, eu, us, debugging=False):
     # Prepare array for results
     portfolio_history=[]
     withdrawal_history=[]
+    real_portfolio_hist = []
     if debugging:
         failed_runs=0
         failed_portfolios=[]
@@ -97,12 +103,15 @@ def mcs(runs, withdrawal_rate, cz, eu, us, debugging=False):
         year=0
         portfolio=15_000_000
         withdrawal_value=portfolio*withdrawal_rate
+        price_index = 1
         # Intialize a list for yearly portfolio values
         yearly_port_values=[np.round(portfolio,2)]
         yearly_with_values=[np.round(withdrawal_value,2)]
+        real_port_values=[np.round(portfolio/price_index,2)]
         # First year
         portfolio-=withdrawal_value
         yearly_port_values.append(np.round(portfolio,2))
+        real_port_values.append(np.round(portfolio/price_index,2))
         cz_stock, cz_bond = asset_split(portfolio, cz)
         eu_stock, eu_bond = asset_split(portfolio, eu)
         us_stock, us_bond = asset_split(portfolio, us)
@@ -110,7 +119,9 @@ def mcs(runs, withdrawal_rate, cz, eu, us, debugging=False):
         # Loop over the rest of years or until portfolio is depleted
         while portfolio>0 and year<30:
             # Generate inflation
-            infl = inflation(statistics)
+            infl = inflation(statistics, housing=house)
+            # Append price index
+            price_index*=(1 + infl)
             # Update iwv
             withdrawal_value*=(1+infl)
             yearly_with_values.append(np.round(withdrawal_value,2))
@@ -164,6 +175,7 @@ def mcs(runs, withdrawal_rate, cz, eu, us, debugging=False):
             # Rebalancing
             if portfolio>0:
                 yearly_port_values.append(np.round(portfolio,2))
+                real_port_values.append(np.round(portfolio / price_index,2))
                 cz_stock, cz_bond = asset_split(portfolio, cz) #np.max([asset_split(portfolio, cz), 0])
                 eu_stock, eu_bond = asset_split(portfolio, eu)#np.max([asset_split(portfolio, eu),0])
                 us_stock, us_bond = asset_split(portfolio, us)#np.max([asset_split(portfolio, us),0])
@@ -175,8 +187,10 @@ def mcs(runs, withdrawal_rate, cz, eu, us, debugging=False):
             for detail in run_details:
                 print(detail)
             failed_runs+=1 if portfolio<=0 else 0
+        #real_port_values = [yearly_port_values[t] / price_index[t] for t in range(len(yearly_port_values))] 
+        real_portfolio_hist.append(real_port_values)      
         portfolio_history.append(yearly_port_values)
         withdrawal_history.append(yearly_with_values)
     if debugging:
-        return portfolio_history, withdrawal_history, failed_runs, failed_portfolios
-    return portfolio_history, withdrawal_history
+        return portfolio_history, withdrawal_history, real_port_values, failed_runs, failed_portfolios
+    return portfolio_history, withdrawal_history, real_portfolio_hist

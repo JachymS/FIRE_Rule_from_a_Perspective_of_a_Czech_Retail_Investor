@@ -4,7 +4,4 @@ This repository serves as a storage for code, requirements and seeds used during
 ### Abstract
 
 ### Bibliographic Record
-Svejda, Jachym: FIRE Rule From a Perspective of a Czech Retail Investor.
-Bachelor’s thesis. Charles University, Faculty of Social Sciences, Institute of
-Economic Studies, Prague. 2025, pages 48. Advisor: Mgr. Petr Polák, M.Sc.,
-Ph.D.
+Svejda, Jachym: FIRE Rule From a Perspective of a Czech Retail Investor. Bachelor’s thesis. Charles University, Faculty of Social Sciences, Institute of Economic Studies, Prague. 2025, pages 64. Advisor: Mgr. Petr Polák, M.Sc., Ph.D.
